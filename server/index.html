@@ -1,0 +1,27 @@
+client/index.html<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Kanban Board</h1>
+    <div class="kanban-container">
+        <div class="column" id="todo">
+            <h3>To Do</h3>
+            <div class="task-list"></div>
+        </div>
+        <div class="column" id="in-progress">
+            <h3>In Progress</h3>
+            <div class="task-list"></div>
+        </div>
+        <div class="column" id="done">
+            <h3>Done</h3>
+            <div class="task-list"></div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
