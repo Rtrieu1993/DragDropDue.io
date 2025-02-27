@@ -1,0 +1,59 @@
+body {
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f6f8;
+  color: #2c3e50;
+}
+
+
+.App {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  text-align: center;
+}
+
+main {
+  flex: 1;
+  padding: 2rem 1rem;
+}
+
+.kanban-section {
+  margin: 3rem 0;
+  padding: 2rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.kanban-section h2 {
+  font-size: 2.5rem;
+  color: #34495e;
+}
+
+.kanban-section p {
+  font-size: 1.2rem;
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  main {
+    padding: 1rem;
+  }
+
+  .kanban-section {
+    padding: 1.5rem;
+  }
+
+  .kanban-section h2 {
+    font-size: 2rem;
+  }
+
+  .kanban-section p {
+    font-size: 1rem;
+  }
+}

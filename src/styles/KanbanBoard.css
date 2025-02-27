@@ -1,0 +1,93 @@
+.kanban-container {
+  text-align: center;
+  padding: 2rem;
+}
+
+.add-task-btn {
+  padding: 0.7rem 1.2rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.add-task-btn:hover {
+  background-color: #219150;
+}
+
+.kanban-board {
+  display: flex;
+  justify-content: space-around;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.kanban-card {
+  background: white;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: grab;
+  transition: transform 0.2s ease-in-out;
+}
+
+.kanban-card:hover {
+  transform: scale(1.05);
+}
+
+/* Priority Tags */
+.high-priority {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.medium-priority {
+  background-color: #f39c12;
+  color: white;
+}
+
+.low-priority {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.priority-tag {
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.due-date {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+
+.task-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0.5rem 0;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.assigned-to {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.assigned-to img {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+}
