@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/Rtrieu1993/DragDropDue.io/issues"
   },
-  "homepage": "https://github.com/Rtrieu1993/DragDropDue.io#readme"
+  "homepage": "https://github.com/Rtrieu1993/DragDropDue.io#readme",
+  "dependencies": {
+    "mongodb": "^6.14.1"
+  }
 }
