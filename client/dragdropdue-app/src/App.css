@@ -1,38 +1,92 @@
-.App {
+/* App.css */
+
+.kanban-board {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px;
+}
+
+.kanban-column {
+  width: 30%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  background-color: #f4f4f4;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+}
+
+.kanban-column h2 {
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.task-list {
+  margin-top: 20px;
+  padding: 5px;
+  min-height: 100px; /* Ensure some space for dropping tasks */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.task {
+  background-color: #ffffff;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  cursor: move;
+  transition: background-color 0.3s ease; /* Smooth transition */
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+.task:focus {
+  outline: none;
+}
+
+.new-task {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.new-task input {
+  padding: 10px;
+  width: 80%;
+  margin-right: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.new-task button {
+  padding: 10px 20px;
+  background-color: #4CAF50;
   color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
-.App-link {
-  color: #61dafb;
+/* Adding some styling for drag and drop */
+.kanban-column .task-list {
+  background-color: #f4f4f4;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.kanban-column .task-list .task {
+  transition: background-color 0.3s ease;
+}
+
+.kanban-column .task-list .task:active {
+  background-color: #e1e1e1; /* Slight color change when dragging */
+}
+
+.kanban-column .task-list .task:hover {
+  background-color: #f1f1f1; /* Hover effect for tasks */
+}
+
+/* Provide visual feedback when dragging */
+.kanban-column .task-list .task-dragging {
+  background-color: #d3ffd3; /* Light green for active task */
+  border: 1px solid #8cde8c;
+}
+
+/* Styling for when a column is being dragged */
+.dragging-over {
+  background-color: #e0e0e0;
+  border: 1px dashed #bbb;
 }
