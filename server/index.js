@@ -18,19 +18,7 @@ const TODO_LIST_ID = '67d0d83fe3451d80f519eacf';
 const IN_PROGRESS_LIST_ID = '67d0d83f25d4768e6dec0ca4';
 const DONE_LIST_ID = '67d0d83f112e7bbdc90183f7';
 
-const mongoose = require('mongoose');
-
-// Mongoose package
-mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('Connected to MongoDB Atlas');
-  })
-  .catch((error) => {
-    console.error('Error connecting to MongoDB Atlas:', error);
-  });
-
-
-// MongoDB connection function
+// MongoDB connection function (for native MongoDB client)
 const connectDB = async () => {
   try {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -86,7 +74,7 @@ app.post('/boards', async (req, res) => {
   try {
     const boardCollection = getCollection('boards');
     const result = await boardCollection.insertOne({ name, lists: [] });
-    res.json({ success: true, board: result.ops[0] });
+    res.json({ success: true, board: { id: result.insertedId, name } }); // Updated to reflect insertedId
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to create board', error });
   }
@@ -107,7 +95,7 @@ app.post('/lists', async (req, res) => {
   try {
     const listCollection = getCollection('lists');
     const result = await listCollection.insertOne({ boardId, name, tasks: [] });
-    res.json({ success: true, list: result.ops[0] });
+    res.json({ success: true, list: { id: result.insertedId, name, boardId } }); // Updated to reflect insertedId
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to create list', error });
   }
@@ -124,51 +112,104 @@ app.get('/lists/:boardId', async (req, res) => {
   }
 });
 
+// Tasks Routes
 app.post('/tasks', async (req, res) => {
   const { listId, name } = req.body;
+  let targetListId;
+
+  // Determine which list the task should go into based on the listId
+  if (listId === 'todo') {
+    targetListId = TODO_LIST_ID; // Todo list
+  } else if (listId === 'inProgress') {
+    targetListId = IN_PROGRESS_LIST_ID; // In Progress list
+  } else if (listId === 'done') {
+    targetListId = DONE_LIST_ID; // Done list
+  } else {
+    return res.status(400).json({ error: 'Invalid listId' });
+  }
+
   try {
-    const taskCollection = getCollection('tasks');
-    const result = await taskCollection.insertOne({ listId, name, completed: false });
-    res.json({ success: true, task: result.ops[0] });
+    const response = await axios.post('https://api.trello.com/1/cards', null, {
+      params: {
+        key: API_KEY,
+        token: TOKEN,
+        idList: targetListId, // Use dynamic listId for the task
+        name: name,
+      }
+    });
+
+    res.json({ success: true, task: response.data });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to create task', error });
+    res.status(500).json({ success: false, message: 'Failed to create task on Trello', error });
   }
 });
 
 app.get('/tasks/:listId', async (req, res) => {
   const { listId } = req.params;
+  let targetListId;
+
+  // Map the listId to the corresponding Trello list
+  if (listId === 'todo') {
+    targetListId = TODO_LIST_ID;
+  } else if (listId === 'inProgress') {
+    targetListId = IN_PROGRESS_LIST_ID;
+  } else if (listId === 'done') {
+    targetListId = DONE_LIST_ID;
+  } else {
+    return res.status(400).json({ error: 'Invalid listId' });
+  }
+
   try {
-    const taskCollection = getCollection('tasks');
-    const tasks = await taskCollection.find({ listId }).toArray();
-    res.json({ tasks });
+    const response = await axios.get(`https://api.trello.com/1/lists/${targetListId}/cards`, {
+      params: { key: API_KEY, token: TOKEN },
+    });
+
+    res.json({ tasks: response.data });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch tasks', error });
+    res.status(500).json({ success: false, message: 'Failed to fetch tasks from Trello', error });
   }
 });
 
 app.put('/tasks/:taskId', async (req, res) => {
   const { taskId } = req.params;
-  const { name, completed } = req.body;
+  const { listId, name, completed } = req.body;
+  let targetListId;
+
+  // Map the listId to the corresponding Trello list
+  if (listId === 'inProgress') {
+    targetListId = IN_PROGRESS_LIST_ID;
+  } else if (listId === 'done') {
+    targetListId = DONE_LIST_ID;
+  } else {
+    return res.status(400).json({ error: 'Invalid listId' });
+  }
+
   try {
-    const taskCollection = getCollection('tasks');
-    const result = await taskCollection.updateOne(
-      { _id: taskId },
-      { $set: { name, completed } }
-    );
-    res.json({ success: true, updatedTask: result });
+    const response = await axios.put(`https://api.trello.com/1/cards/${taskId}`, null, {
+      params: {
+        key: API_KEY,
+        token: TOKEN,
+        idList: targetListId, // Dynamically move task to correct list
+        name,
+        completed
+      }
+    });
+
+    res.json({ success: true, updatedTask: response.data });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update task', error });
+    res.status(500).json({ success: false, message: 'Failed to update task on Trello', error });
   }
 });
 
 app.delete('/tasks/:taskId', async (req, res) => {
   const { taskId } = req.params;
   try {
-    const taskCollection = getCollection('tasks');
-    const result = await taskCollection.deleteOne({ _id: taskId });
-    res.json({ success: true, message: 'Task deleted' });
+    const response = await axios.delete(`https://api.trello.com/1/cards/${taskId}`, {
+      params: { key: API_KEY, token: TOKEN },
+    });
+    res.json({ success: true, message: 'Task deleted from Trello' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to delete task', error });
+    res.status(500).json({ success: false, message: 'Failed to delete task from Trello', error });
   }
 });
 
