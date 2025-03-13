@@ -3,221 +3,156 @@ import axios from 'axios';
 import './App.css';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
-// Replace these with your actual API key, token, and board/list IDs
-const API_KEY = 'your_trello_api_key';
-const TOKEN = 'your_trello_token';
-const BOARD_ID = 'your_board_id'; // Replace with your Trello board ID
-const TODO_LIST_ID = 'your_trello_todo_list_id';
-const IN_PROGRESS_LIST_ID = 'your_trello_in_progress_list_id';
-const DONE_LIST_ID = 'your_trello_done_list_id';
+const API_URL = 'http://localhost:5000';
 
 function App() {
-  const [tasks, setTasks] = useState({
-    todo: [],
-    inProgress: [],
-    done: []
-  });
-
+  const [tasks, setTasks] = useState({ todo: [], inProgress: [], done: [] });
   const [newTask, setNewTask] = useState('');
 
-  // Function to fetch tasks from Trello
+  // Fetch tasks from MongoDB
   const fetchData = async () => {
     try {
-      const listsResponse = await axios.get(
-        `https://api.trello.com/1/boards/${BOARD_ID}/lists?key=${API_KEY}&token=${TOKEN}`
-      );
-
-      const lists = listsResponse.data;
+      const response = await axios.get(`${API_URL}/boards`);
+      const boards = response.data.boards;
+      const board = boards[0];
       const tasksData = { todo: [], inProgress: [], done: [] };
 
-      for (const list of lists) {
-        const cardsResponse = await axios.get(
-          `https://api.trello.com/1/lists/${list.id}/cards?key=${API_KEY}&token=${TOKEN}`
-        );
-        const cards = cardsResponse.data;
+      for (const list of board.lists) {
+        const listTasksResponse = await axios.get(`${API_URL}/tasks/${list._id}`);
+        const tasks = listTasksResponse.data.tasks;
 
-        if (list.id === TODO_LIST_ID) tasksData.todo = cards;
-        if (list.id === IN_PROGRESS_LIST_ID) tasksData.inProgress = cards;
-        if (list.id === DONE_LIST_ID) tasksData.done = cards;
+        if (list.name === 'To Do') tasksData.todo = tasks;
+        if (list.name === 'In Progress') tasksData.inProgress = tasks;
+        if (list.name === 'Done') tasksData.done = tasks;
       }
 
       setTasks(tasksData);
     } catch (error) {
-      console.error('Error fetching data from Trello:', error);
+      console.error('Error fetching data from MongoDB:', error);
     }
   };
 
-  // Fetch tasks when the component mounts
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Function to move task between columns
-  const moveTask = (taskId, from, to) => {
-    const taskToMove = tasks[from].find(task => task.id === taskId);
-    if (taskToMove) {
-      const newFromColumn = tasks[from].filter(task => task.id !== taskId);
-      const newToColumn = [...tasks[to], taskToMove];
+  const moveTask = async (taskId, from, to) => {
+    const taskToMove = tasks[from]?.find((task) => task._id === taskId);
+    if (!taskToMove) return;
 
-      setTasks({
-        ...tasks,
-        [from]: newFromColumn,
-        [to]: newToColumn
+    try {
+      await axios.put(`${API_URL}/tasks/${taskToMove._id}`, {
+        name: taskToMove.name,
+        completed: taskToMove.completed,
+        listId: to,
       });
 
-      axios.put(
-        `https://api.trello.com/1/cards/${taskToMove.id}?idList=${getListIdByName(to)}&key=${API_KEY}&token=${TOKEN}`
-      );
+      fetchData();
+    } catch (error) {
+      console.error('Error moving task:', error);
     }
   };
 
-  // Get the list ID for a column (To Do, In Progress, Done)
-  const getListIdByName = (name) => {
-    if (name === 'todo') return TODO_LIST_ID;
-    if (name === 'inProgress') return IN_PROGRESS_LIST_ID;
-    if (name === 'done') return DONE_LIST_ID;
-    return '';
-  };
-
-  // Function to handle new task submission
-  const handleAddTask = async () => {
+  const handleAddTask = async (listId) => {
     if (newTask.trim()) {
-      console.log('Adding task:', newTask); // Debugging line
-  
       try {
-        const response = await axios.post(
-          `https://api.trello.com/1/cards?name=${newTask}&idList=${TODO_LIST_ID}&key=${API_KEY}&token=${TOKEN}`
-        );
-        
-        console.log('Task added successfully:', response); // Debugging line
+        // Dynamically send the listId when creating the task
+        await axios.post(`${API_URL}/tasks`, { name: newTask, listId });
   
-        setNewTask(''); // Clear input field after adding
-        fetchData();  // Re-fetch the tasks from Trello
+        setNewTask(''); // Reset input field
+        fetchData(); // Refresh tasks after adding
       } catch (error) {
-        console.error('Error adding task to Trello:', error); // Error logging
+        console.error('Error adding task:', error);
       }
-    } else {
-      console.log('Task input is empty'); // Debugging line when input is empty
     }
   };
-  // Handle drag end event
+
+  const handleEditTask = async (taskId, currentName) => {
+    const newName = prompt('Edit task name:', currentName);
+    if (!newName || newName.trim() === currentName) return;
+
+    try {
+      await axios.put(`${API_URL}/tasks/${taskId}`, { name: newName, completed: false });
+      fetchData();
+    } catch (error) {
+      console.error('Error editing task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
+
+    try {
+      await axios.delete(`${API_URL}/tasks/${taskId}`);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
   const handleDragEnd = (result) => {
     const { destination, source } = result;
-
-    // If dropped outside the list, do nothing
-    if (!destination) {
-      return;
-    }
-
-    // Moving tasks between columns
-    const from = source.droppableId;
-    const to = destination.droppableId;
-
-    if (from !== to) {
-      moveTask(result.draggableId, from, to);
-    }
+    if (!destination) return;
+    moveTask(result.draggableId, source.droppableId, destination.droppableId);
   };
 
   return (
-    <div className="kanban-board">
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="kanban-column">
-          <h2>To Do</h2>
-          <Droppable droppableId="todo">
-            {(provided) => (
-              <div
-                className="task-list"
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-              >
-                {tasks.todo.map((task, index) => (
-                  <Draggable key={task.id} draggableId={task.id} index={index}>
-                    {(provided) => (
-                      <div
-                        className="task"
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                      >
-                        {task.name}
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </div>
+    <div>
+      {/* Header */}
+      <header className="header">
+        <h1>DragDropDue - Kanban Board</h1>
+      </header>
 
-        <div className="kanban-column">
-          <h2>In Progress</h2>
-          <Droppable droppableId="inProgress">
-            {(provided) => (
-              <div
-                className="task-list"
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-              >
-                {tasks.inProgress.map((task, index) => (
-                  <Draggable key={task.id} draggableId={task.id} index={index}>
-                    {(provided) => (
-                      <div
-                        className="task"
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                      >
-                        {task.name}
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </div>
+      {/* Main Body */}
+      <main className="kanban-board">
+        <DragDropContext onDragEnd={handleDragEnd}>
+          {['todo', 'inProgress', 'done'].map((column) => (
+            <div key={column} className="kanban-column">
+              <h2>{column === 'todo' ? 'To Do' : column === 'inProgress' ? 'In Progress' : 'Done'}</h2>
+              <Droppable droppableId={column}>
+                {(provided) => (
+                  <div className="task-list" ref={provided.innerRef} {...provided.droppableProps}>
+                    {tasks[column].map((task, index) => (
+                      <Draggable key={task._id} draggableId={task._id} index={index}>
+                        {(provided) => (
+                          <div
+                            className="task"
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                          >
+                            <span>{task.name}</span>
+                            <div className="task-buttons">
+                              <button onClick={() => handleEditTask(task._id, task.name)}>✏️</button>
+                              <button onClick={() => handleDeleteTask(task._id)}>🗑️</button>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </div>
+          ))}
 
-        <div className="kanban-column">
-          <h2>Done</h2>
-          <Droppable droppableId="done">
-            {(provided) => (
-              <div
-                className="task-list"
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-              >
-                {tasks.done.map((task, index) => (
-                  <Draggable key={task.id} draggableId={task.id} index={index}>
-                    {(provided) => (
-                      <div
-                        className="task"
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                      >
-                        {task.name}
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </div>
+          <div className="new-task">
+            <input
+              type="text"
+              value={newTask}
+              onChange={(e) => setNewTask(e.target.value)}
+              placeholder="Add a new task"
+            />
+            <button onClick={handleAddTask}>Add Task</button>
+          </div>
+        </DragDropContext>
+      </main>
 
-        <div className="new-task">
-          <input
-            type="text"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            placeholder="Add a new task"
-          />
-          <button onClick={handleAddTask}>Add Task</button>
-        </div>
-      </DragDropContext>
+      {/* Footer */}
+      <footer className="footer">
+        <p>Created with ❤️ by your Kanban Board Team</p>
+      </footer>
     </div>
   );
 }
